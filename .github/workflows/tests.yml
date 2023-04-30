@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - develop
-      - support-windows-via-msys2
+      #- support-windows-via-msys2
   pull_request:
     branches:
       - master
