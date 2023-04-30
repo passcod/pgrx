@@ -2,23 +2,6 @@ name: MSYS2
 on: [push, pull_request]
 
 jobs:
-  # edb_pg: 
-  #   if: true
-  #   name: Download postgresql binaries
-  #   runs-on: windows-latest
-  #   strategy:
-  #     matrix:
-  #       #fail-fast: false
-  #       include:
-  #         - { pg_major: '15.2', version: 'postgresql-15' }
-  #   steps:
-  #     - name: Install PostgreSQL
-  #       run: |
-  #         curl https://get.enterprisedb.com/postgresql/postgresql-${{ matrix.pg_major }}-1-windows-x64-binaries.zip --output pgsql.zip
-  #         Expand-Archive 'pgsql.zip' -Force
-  #         $env:path += ";$(Get-Location)\pgsql\pgsql\bin\"
-  #         $env:path -split ";"
-  #         echo "POSTGRESQL_DIR=$pwd\pgsql\pgsql" >> $env:GITHUB_ENV
   mingw:
     # enable, for easy toggling on an off
     if: true
@@ -50,6 +33,11 @@ jobs:
           json-c:p
           rust:p
 
+    - name: Install PostgreSQL
+      run: |
+        curl https://get.enterprisedb.com/postgresql/postgresql-${{ matrix.pg_major }}-1-windows-x64-binaries.zip --output pgsql.zip
+        unzip pgsql.zip
+
     - name: Install cargo-pgrx
       run: cargo install --path cargo-pgrx/ --debug --force --locked
 
@@ -58,5 +46,5 @@ jobs:
         export PG_USER=postgres
         whoami
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
-        cargo pgrx init --pg$PG_VER /${{ POSTGRESQL_DIR }}/bin/pg_config
+        cargo pgrx init --pg$PG_VER /pgsql/pgsql/bin/pg_config
     
