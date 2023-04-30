@@ -27,7 +27,6 @@ jobs:
         msystem: ${{ matrix.sys }}
         update: true
         install: >-
-          git
           make
           rust
         pacboy: >-
