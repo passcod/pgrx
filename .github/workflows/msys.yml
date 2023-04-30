@@ -38,7 +38,7 @@ jobs:
       run: |
         MSYSTEM= /${{ matrix.sys }}/bin/initdb -D D:/a/_tmp/psql
         MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl -D D:/a/_tmp/psql -l logfile start
-        MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl register -N "postgresql" -U "NT AUTHORITY\NetworkService" -D D:/a/_tmp/psql -w -S demand
+        #MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl register -N "postgresql" -U "NT AUTHORITY\NetworkService" -D D:/a/_tmp/#psql -w -S demand
         MSYSTEM= /${{ matrix.sys }}/bin/createuser -U `whoami` -s postgres
 
     - name: Install cargo-pgrx
@@ -46,7 +46,8 @@ jobs:
 
     - name: Run 'cargo pgrx init' against system-level ${{ matrix.version }}
       run: |
-        su postgres
+        export PGUSER=postgres
+        whoami
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
         cargo pgrx init --pg$PG_VER /${{ matrix.sys }}/bin/pg_config
     
