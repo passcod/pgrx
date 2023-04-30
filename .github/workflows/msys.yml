@@ -11,7 +11,7 @@ jobs:
       matrix:
         #fail-fast: false
         include:
-          - { icon: '🟦', sys: mingw64, version: "postgres-15" }
+          - { icon: '🟦', sys: mingw64, pg_major: "15" }
           #- { icon: '🟨', sys: ucrt64  } # Experimental!
           #- { icon: '🟧', sys: clang64 } # Experimental!
     defaults:
@@ -31,23 +31,30 @@ jobs:
         pacboy: >-
           toolchain:p
           json-c:p
-          postgresql:p
           rust:p
 
-    - name: Set up prerequisites and environment
+    - name: Install PostgreSQL
       run: |
-        MSYSTEM= /${{ matrix.sys }}/bin/initdb -D D:/a/_tmp/psql
-        MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl -D D:/a/_tmp/psql -l logfile start
-        #MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl register -N "postgresql" -U "NT AUTHORITY\NetworkService" -D D:/a/_tmp/#psql -w -S demand
-        MSYSTEM= /${{ matrix.sys }}/bin/createuser -U `whoami` -s postgres
+        curl https://get.enterprisedb.com/postgresql/postgresql-${{ matrix.pg_major }}-1-windows-x64-binaries.zip --output pgsql.zip
+        Expand-Archive 'pgsql.zip' -Force
+        $env:path += ";$(Get-Location)\pgsql\pgsql\bin\"
+        $env:path -split ";"
+        echo "POSTGRESQL_DIR=$pwd\pgsql\pgsql" >> $env:GITHUB_ENV
+
+    # - name: Set up prerequisites and environment
+    #   run: |
+    #     MSYSTEM= /${{ matrix.sys }}/bin/initdb -D D:/a/_tmp/psql
+    #     MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl -D D:/a/_tmp/psql -l logfile start
+    #     #MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl register -N "postgresql" -U "NT AUTHORITY\NetworkService" -D D:/a/_tmp/#psql -w -S demand
+    #     MSYSTEM= /${{ matrix.sys }}/bin/createuser -U `whoami` -s postgres
 
     - name: Install cargo-pgrx
       run: cargo install --path cargo-pgrx/ --debug --force --locked
 
     - name: Run 'cargo pgrx init' against system-level ${{ matrix.version }}
       run: |
-        export PGUSER=postgres
+        export PG_USER=postgres
         whoami
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
-        cargo pgrx init --pg$PG_VER /${{ matrix.sys }}/bin/pg_config
+        cargo pgrx init --pg$PG_VER /${{ POSTGRESQL_DIR }}/bin/pg_config
     
