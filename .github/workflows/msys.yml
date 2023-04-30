@@ -27,12 +27,12 @@ jobs:
         msystem: ${{ matrix.sys }}
         update: true
         install: >-
-          make
-          rust
+          base-devel
         pacboy: >-
           toolchain:p
           json-c:p
           postgresql:p
+          rust:p
 
     - name: '🚧 Build TOOL'
       run: |
