@@ -37,8 +37,8 @@ jobs:
       run: |
         curl https://get.enterprisedb.com/postgresql/postgresql-${{ matrix.pg_major }}-1-windows-x64-binaries.zip --output pgsql.zip
         unzip -q pgsql.zip
-        echo "PGPATH=$pwd\pgsql\pgsql" >> $env:GITHUB_ENV
-        ls pgsql/pgsql
+        echo "PGPATH=$pwd/pgsql/pgsql" >> $env:GITHUB_ENV
+        ls $pwd/pgsql/pgsql
 
     - name: Install cargo-pgrx
       run: cargo install --path cargo-pgrx/ --debug --force --locked
