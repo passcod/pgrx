@@ -26,13 +26,12 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        #install: >-
-        #  base-devel
+        install: >-
+          unzip
         pacboy: >-
           toolchain:p
           json-c:p
           rust:p
-          unzip:p
 
     - name: Install PostgreSQL
       run: |
