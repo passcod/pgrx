@@ -33,7 +33,11 @@ pub fn get_c_locale_flags() -> &'static [&'static str] {
     {
         &["--locale=C", "--lc-ctype=UTF-8"]
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        &["--locale=C", "--lc-ctype=UTF-8"]
+    }
+    #[cfg(not(target_os = "macos") and not(target_os = "windows"))]
     {
         match Command::new("locale").arg("-a").output() {
             Ok(cmd)
@@ -41,7 +45,7 @@ pub fn get_c_locale_flags() -> &'static [&'static str] {
                     .lines()
                     .any(|l| l == "C.UTF-8" || l == "C.utf8") =>
             {
-                &["--locale=C.utf8"]
+                &["--locale=C.UTF-8"]
             }
             // fallback to C if we can't list locales or don't have C.UTF-8
             _ => &["--locale=C"],
