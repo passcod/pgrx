@@ -32,6 +32,7 @@ jobs:
           toolchain:p
           json-c:p
           rust:p
+          clang:p
 
     - name: Install PostgreSQL
       run: |
