@@ -570,6 +570,12 @@ fn get_pg_installdir(pgdir: &PathBuf) -> PathBuf {
     dir
 }
 
+#[cfg(windows)]
+fn is_root_user() -> bool {
+    true
+}
+
+#[cfg(not(windows))]
 fn is_root_user() -> bool {
     use nix::unistd::Uid;
     Uid::effective().is_root()
