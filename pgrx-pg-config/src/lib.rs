@@ -29,15 +29,11 @@ pub static BASE_POSTGRES_TESTING_PORT_NO: u16 = 32200;
 /// The flags to specify to get a "C.UTF-8" locale on this system, or "C" locale on systems without
 /// a "C.UTF-8" locale equivalent.
 pub fn get_c_locale_flags() -> &'static [&'static str] {
-    #[cfg(target_os = "macos")]
+    #[cfg( any(target_os = "macos", target_os = "windows") )]
     {
         &["--locale=C", "--lc-ctype=UTF-8"]
     }
-    #[cfg(target_os = "windows")]
-    {
-        &["--locale=C", "--lc-ctype=UTF-8"]
-    }
-    #[cfg(not(target_os = "macos") and not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "macos", target_os = "windows")) )]
     {
         match Command::new("locale").arg("-a").output() {
             Ok(cmd)
