@@ -11,7 +11,7 @@ jobs:
       matrix:
         #fail-fast: false
         include:
-          - { icon: '🟦', sys: mingw64, version: ["postgres-15"] }
+          - { icon: '🟦', sys: mingw64, version: "postgres-15" }
           #- { icon: '🟨', sys: ucrt64  } # Experimental!
           #- { icon: '🟧', sys: clang64 } # Experimental!
     defaults:
