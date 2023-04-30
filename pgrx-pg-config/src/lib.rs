@@ -41,7 +41,7 @@ pub fn get_c_locale_flags() -> &'static [&'static str] {
                     .lines()
                     .any(|l| l == "C.UTF-8" || l == "C.utf8") =>
             {
-                &["--locale=C.UTF-8"]
+                &["--locale=C.utf8"]
             }
             // fallback to C if we can't list locales or don't have C.UTF-8
             _ => &["--locale=C"],
