@@ -34,9 +34,12 @@ jobs:
           postgresql:p
           rust:p
 
-    - name: '🚧 Build TOOL'
+    - name: Set up prerequisites and environment
       run: |
         MSYSTEM= /${{ matrix.sys }}/bin/initdb -D D:/a/_tmp/psql
         MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl -D D:/a/_tmp/psql -l logfile start
         MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl register -N "postgresql" -U "NT AUTHORITY\NetworkService" -D D:/a/_tmp/psql -w -S demand
         MSYSTEM= /${{ matrix.sys }}/bin/createuser -U `whoami` -s postgres
+    - name: Install cargo-pgrx
+      run: cargo install --path cargo-pgrx/ --debug --force
+    
