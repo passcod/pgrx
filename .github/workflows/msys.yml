@@ -53,7 +53,9 @@ jobs:
 
     - name: Run pgrx-tests with cshim disabled
       run: |
+        export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
+        export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
         cargo test \
-          --features "pg$PG_VER" \
+          --features "pg${PG_VER}" \
           --package pgrx-tests
     
