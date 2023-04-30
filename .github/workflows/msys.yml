@@ -36,7 +36,9 @@ jobs:
     - name: Install PostgreSQL
       run: |
         curl https://get.enterprisedb.com/postgresql/postgresql-${{ matrix.pg_major }}-1-windows-x64-binaries.zip --output pgsql.zip
-        unzip pgsql.zip
+        unzip -q pgsql.zip
+        echo "PGPATH=$pwd\pgsql\pgsql" >> $env:GITHUB_ENV
+        ls ${{ env.PGPATH }}
 
     - name: Install cargo-pgrx
       run: cargo install --path cargo-pgrx/ --debug --force --locked
@@ -46,5 +48,6 @@ jobs:
         export PG_USER=postgres
         whoami
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
-        cargo pgrx init --pg$PG_VER /pgsql/pgsql/bin/pg_config
+        export PATH=${PATH}:${{ env.PGPATH }}/bin:${{ env.PGPATH }}/include
+        cargo pgrx init --pg$PG_VER pg_config
     
