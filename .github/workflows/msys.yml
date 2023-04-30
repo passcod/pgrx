@@ -41,5 +41,5 @@ jobs:
         MSYSTEM= /${{ matrix.sys }}/bin/pg_ctl register -N "postgresql" -U "NT AUTHORITY\NetworkService" -D D:/a/_tmp/psql -w -S demand
         MSYSTEM= /${{ matrix.sys }}/bin/createuser -U `whoami` -s postgres
     - name: Install cargo-pgrx
-      run: cargo install --path cargo-pgrx/ --debug --force
+      run: cargo install --path cargo-pgrx/ --debug --force --locked
     
