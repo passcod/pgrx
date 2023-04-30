@@ -572,7 +572,7 @@ fn get_pg_installdir(pgdir: &PathBuf) -> PathBuf {
 
 #[cfg(windows)]
 fn is_root_user() -> bool {
-    true
+    false
 }
 
 #[cfg(not(windows))]
