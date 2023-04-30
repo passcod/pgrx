@@ -26,8 +26,8 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         update: true
-        install: >-
-          base-devel
+        #install: >-
+        #  base-devel
         pacboy: >-
           toolchain:p
           json-c:p
