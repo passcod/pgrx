@@ -28,11 +28,11 @@ use alloc::vec::Vec;
 
 // An apparent bug in `glibc` 2.17 prevents us from safely dropping this
 // otherwise users find issues such as https://github.com/tcdi/pgrx/issues/572
-static POSTMASTER_LIBRARY: OnceCell<libloading::os::unix::Library> = OnceCell::new();
+//static POSTMASTER_LIBRARY: OnceCell<libloading::os::unix::Library> = OnceCell::new();
 
 // An apparent bug in `glibc` 2.17 prevents us from safely dropping this
 // otherwise users find issues such as https://github.com/tcdi/pgrx/issues/572
-static EXTENSION_LIBRARY: OnceCell<libloading::os::unix::Library> = OnceCell::new();
+//static EXTENSION_LIBRARY: OnceCell<libloading::os::unix::Library> = OnceCell::new();
 
 /// Generate extension schema files
 #[derive(clap::Args, Debug)]
@@ -380,6 +380,7 @@ pub(crate) fn generate_schema(
     let mut entities = Vec::default();
 
     #[rustfmt::skip] // explicit extern "Rust" is more clear here
+	#[cfg(not(windows))]
     unsafe {
         // SAFETY: Calls foreign functions with the correct type signatures.
         // Assumes that repr(Rust) enums are represented the same in this crate as in the external
@@ -388,10 +389,9 @@ pub(crate) fn generate_schema(
 
         POSTMASTER_LIBRARY
             .get_or_try_init(|| {
-                libloading::os::unix::Library::open(
-                    Some(&postmaster_stub_built),
-                    libloading::os::unix::RTLD_NOW | libloading::os::unix::RTLD_GLOBAL,
-                )
+                libloading::Library::new(
+                    Some(&postmaster_stub_built)
+                ).unwrap();
             })
             .wrap_err_with(|| format!("Couldn't libload {}", postmaster_stub_built.display()))?;
 

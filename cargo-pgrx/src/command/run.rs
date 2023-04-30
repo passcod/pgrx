@@ -17,7 +17,7 @@ use crate::CommandExecute;
 use eyre::eyre;
 use owo_colors::OwoColorize;
 use pgrx_pg_config::{createdb, PgConfig, Pgrx};
-use std::os::unix::process::CommandExt;
+//use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 
@@ -138,6 +138,7 @@ pub(crate) fn exec_psql(pg_config: &PgConfig, dbname: &str, pgcli: bool) -> eyre
         false => pg_config.psql_path()?.into_os_string(),
         true => "pgcli".to_string().into(),
     });
+
     command
         .env_remove("PGDATABASE")
         .env_remove("PGHOST")
@@ -150,5 +151,9 @@ pub(crate) fn exec_psql(pg_config: &PgConfig, dbname: &str, pgcli: bool) -> eyre
         .arg(dbname);
 
     // we'll never return from here as we've now become psql
-    panic!("{}", command.exec());
+	#[cfg(target_family = "unix")]
+    panic!("{}", exec(command));
+	
+	#[cfg(target_family = "windows")]
+	panic!("{}", "Whatever");
 }
