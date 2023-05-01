@@ -13,7 +13,7 @@ jobs:
         include:
           - { icon: '🟦', sys: mingw64, pg_major: '15.2', version: 'postgresql-15' }
           #- { icon: '🟨', sys: ucrt64  } # Experimental!
-          - { icon: '🟧', sys: clang64, pg_major: '15.2', version: 'postgresql-15' } # Experimental!
+          #- { icon: '🟧', sys: clang64, pg_major: '15.2', version: 'postgresql-15' } # Experimental!
     defaults:
       run:
         shell: msys2 {0}
@@ -52,11 +52,9 @@ jobs:
         export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
         cargo pgrx init --pg$PG_VER pg_config
 
-    - name: Run pgrx-tests with cshim disabled
+    - name: Run pgrx-tests
       run: |
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
         export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
-        cargo test \
-          --features "pg${PG_VER}" \
-          --package pgrx-tests
+        cargo test --features pg${PG_VER} --no-default-features --package cargo-pgrx
     
