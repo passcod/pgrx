@@ -245,6 +245,12 @@ fn generate_bindings(
     let mut include_h = build_paths.manifest_dir.clone();
     include_h.push("include");
     include_h.push(format!("pg{}.h", major_version));
+    #[cfg(target_os = "windows")]{
+        include_h.push(format!("{}/port/win32/netdb.h",pg_config.includedir_server()?.display()));
+        include_h.push(format!("{}/port/win32/netinet/in.h",pg_config.includedir_server()?.display()));
+        include_h.push(format!("{}/port/win32/sys/socket.h",pg_config.includedir_server()?.display()));
+        include_h.push(format!("{}/port/win32/sys/wait.h",pg_config.includedir_server()?.display()));
+    }
 
     let bindgen_output = get_bindings(major_version, &pg_config, &include_h)
         .wrap_err_with(|| format!("bindgen failed for pg{}", major_version))?;
