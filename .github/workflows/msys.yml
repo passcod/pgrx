@@ -33,10 +33,13 @@ jobs:
           json-c:p
           rust:p
           clang:p
+          make:p
+          autoconf:p
+          libtool:p
 
     - name: "Build and Install PostgreSQL"
       run: |
-        wget https://ftp.postgresql.org/pub/source/v${{ matrix.pg_major }}/postgresql-${{ matrix.pg_major }}.tar.bz2
+        wget --quiet https://ftp.postgresql.org/pub/source/v${{ matrix.pg_major }}/postgresql-${{ matrix.pg_major }}.tar.bz2
         tar xfj postgresql-${{ matrix.pg_major }}.tar.bz2
         cd postgresql-${{ matrix.pg_major }}
         ./configure --build=x86_64-w64-mingw32 --prefix=${PWD}/pgsql --build=x86_64-w64-mingw32 --enable-float8-byval --enable-cassert --enable-debug --enable-integer-datetimes --with-libxml  --with-zlib
