@@ -460,7 +460,7 @@ pub(crate) fn generate_schema(
         #[cfg(windows)]
         for symbol_to_call in fns_to_call {
             let symbol: Symbol<unsafe extern "Rust" fn() -> pgrx_sql_entity_graph::SqlGraphEntity> =
-                unsafe { lib.get(symbol_to_call.as_bytes()) }
+                lib.get(symbol_to_call.as_bytes())
                 .unwrap_or_else(|_|
                     panic!("Couldn't call {:#?}", symbol_to_call));
             let entity = symbol();

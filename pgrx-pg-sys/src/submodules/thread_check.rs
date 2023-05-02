@@ -38,7 +38,11 @@ fn init_active_thread(tid: NonZeroUsize) {
             extern "C" fn clear_in_child() {
                 ACTIVE_THREAD.store(0, Ordering::Relaxed);
             }
+            #[cfg(not(windows))]
             libc::pthread_atfork(None, None, Some(clear_in_child));
+
+            //#[cfg(windows)]
+            //let clear_in_child_fn = transmute::<unsafe extern "C" fn(), unsafe extern "C-unwind" fn()>(clear_in_child);
         },
         Err(_) => {
             thread_id_check_failed();
