@@ -34,7 +34,6 @@ jobs:
           rust:p
           clang:p
           make:p
-          automake:p
           libtool:p
 
     - name: "Build and Install PostgreSQL"
