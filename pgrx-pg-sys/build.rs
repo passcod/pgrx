@@ -713,8 +713,13 @@ fn run_bindgen(
     binder = add_derives(binder);
     let bindings = binder
         .header(include_h.display().to_string())
+        .clang_args(
+            &pg_target_include_flags(major_version, pg_config)?
+                .iter()
+                .map(|path| format!("{}", path))
+                .collect::<Vec<String>>(),
+        )
         .clang_args(&extra_bindgen_clang_args(pg_config)?)
-        .clang_args(pg_target_include_flags(major_version, pg_config)?)
         .detect_include_paths(target_env_tracked("PGRX_BINDGEN_NO_DETECT_INCLUDES").is_none())
         .parse_callbacks(Box::new(PgrxOverrides::default()))
         // The NodeTag enum is closed: additions break existing values in the set, so it is not extensible
@@ -724,8 +729,13 @@ fn run_bindgen(
         .formatter(bindgen::Formatter::None)
         .layout_tests(false)
         .generate()
-        .wrap_err_with(|| format!("Unable to generate bindings for pg{}", major_version))?;
-
+        .wrap_err_with(|| {
+            format!(
+                "Unable to generate bindings for pg{} {}",
+                major_version,
+                pg_target_include_flags(major_version, pg_config).expect(" ").join(" ")
+            )
+        })?;
     Ok(bindings.to_string())
 }
 
@@ -804,18 +814,33 @@ fn target_env_tracked(s: &str) -> Option<String> {
 }
 
 /// Returns `Err` if `pg_config` errored, `None` if we should
-fn pg_target_include_flags(pg_version: u16, pg_config: &PgConfig) -> eyre::Result<Option<String>> {
+fn pg_target_include_flags(pg_version: u16, pg_config: &PgConfig) -> eyre::Result<Vec<String>> {
     let var = "PGRX_INCLUDEDIR_SERVER";
     let value =
         target_env_tracked(&format!("{var}_PG{pg_version}")).or_else(|| target_env_tracked(var));
+    let mut out = vec![];
     match value {
         // No configured value: ask `pg_config`.
-        None => Ok(Some(format!("-I{}", pg_config.includedir_server()?.display()))),
+        None => {
+            let include_dir = pg_config.includedir_server()?.display().to_string();
+            let include_dirs: Vec<&str> = include_dir.split_whitespace().collect();
+            let include_args: Vec<String> =
+                include_dirs.into_iter().map(|dir| format!("-I{}", dir)).collect();
+            out = include_args;
+            Ok(out)
+        }
         // Configured to empty string: assume bindgen is getting it some other
         // way, pass nothing.
-        Some(overridden) if overridden.is_empty() => Ok(None),
+        Some(overridden) if overridden.is_empty() => Ok(out),
         // Configured to non-empty string: pass to bindgen
-        Some(overridden) => Ok(Some(format!("-I{overridden}"))),
+        Some(overridden) => {
+            let include_dir = overridden.to_string();
+            let include_dirs: Vec<&str> = include_dir.split_whitespace().collect();
+            let include_args: Vec<String> =
+                include_dirs.into_iter().map(|dir| format!("-I{}", dir)).collect();
+            out = include_args;
+            Ok(out)
+        } //Some(overridden) => Ok(Some(format!("-I{overridden}"))),
     }
 }
 
