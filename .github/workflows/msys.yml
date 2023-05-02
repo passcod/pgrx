@@ -60,7 +60,7 @@ jobs:
       run: |
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
         export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
-        export RUST_BACKTRACE=1
+        export RUST_BACKTRACE=full
         cargo test \
           --features "pg$PG_VER cshim" \
           --package pgrx-tests
