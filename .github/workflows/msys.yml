@@ -28,12 +28,12 @@ jobs:
         update: true
         install: >-
           unzip
+          make
         pacboy: >-
           toolchain:p
           json-c:p
           rust:p
           clang:p
-          make:p
           libtool:p
 
     - name: "Build and Install PostgreSQL"
