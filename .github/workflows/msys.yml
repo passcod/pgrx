@@ -34,23 +34,13 @@ jobs:
           rust:p
           clang:p
 
-      - name: Build and Install PostgreSQL
-      - run: |
-          wget https://ftp.postgresql.org/pub/source/v${{ matrix.pg_major }}/postgresql-${{ matrix.pg_major }}.tar.bz2
-          tar xfj postgresql-${{ matrix.pg_major }}.tar.bz2
-          cd postgresql-${{ matrix.pg_major }}
-          ./configure --build=x86_64-w64-mingw32 --prefix=${PWD}/pgsql --build=x86_64-w64-mingw32 --enable-float8-byval --enable-cassert --enable-debug --enable-integer-datetimes --with-libxml  --with-zlib
-          make install
-    #     unzip -q pgsql.zip
-    #     echo "PGPATH=$PWD/pgsql" >> $GITHUB_ENV
-    #     ls $PWD/pgsql
-
-    # - name: Install PostgreSQL
-    #   run: |
-    #     curl https://get.enterprisedb.com/postgresql/postgresql-${{ matrix.pg_major }}-1-windows-x64-binaries.zip --output pgsql.zip
-    #     unzip -q pgsql.zip
-    #     echo "PGPATH=$PWD/pgsql" >> $GITHUB_ENV
-    #     ls $PWD/pgsql
+    - name: "Build and Install PostgreSQL"
+      run: |
+        wget https://ftp.postgresql.org/pub/source/v${{ matrix.pg_major }}/postgresql-${{ matrix.pg_major }}.tar.bz2
+        tar xfj postgresql-${{ matrix.pg_major }}.tar.bz2
+        cd postgresql-${{ matrix.pg_major }}
+        ./configure --build=x86_64-w64-mingw32 --prefix=${PWD}/pgsql --build=x86_64-w64-mingw32 --enable-float8-byval --enable-cassert --enable-debug --enable-integer-datetimes --with-libxml  --with-zlib
+        make install
 
     - name: Install cargo-pgrx
       run: cargo install --path cargo-pgrx/ --debug --force --locked
