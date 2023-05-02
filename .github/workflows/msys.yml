@@ -56,9 +56,7 @@ jobs:
       run: |
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
         export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
-        cargo test --features pg${PG_VER} 
-          --package cargo-pgrx \
-          --package pgrx \
-          --package pgrx-macros \
-          --package pgrx-sql-entity-graph
+        cargo test \
+          --features "pg$PG_VER cshim" \
+          --package pgrx-tests
     
