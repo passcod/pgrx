@@ -27,17 +27,22 @@ use std::process::Stdio;
 extern crate alloc;
 use crate::manifest::{get_package_manifest, pg_config_and_version};
 use alloc::vec::Vec;
+use libloading::Symbol;
 use std::env;
 
 // An apparent bug in `glibc` 2.17 prevents us from safely dropping this
 // otherwise users find issues such as https://github.com/pgcentralfoundation/pgrx/issues/572
-#[cfg(not(windows))]
+#[cfg(unix)]
 static POSTMASTER_LIBRARY: OnceCell<libloading::os::unix::Library> = OnceCell::new();
+#[cfg(windows)]
+static POSTMASTER_LIBRARY: OnceCell<libloading::Library> = OnceCell::new();
 
 // An apparent bug in `glibc` 2.17 prevents us from safely dropping this
 // otherwise users find issues such as https://github.com/pgcentralfoundation/pgrx/issues/572
-#[cfg(not(windows))]
+#[cfg(unix)]
 static EXTENSION_LIBRARY: OnceCell<libloading::os::unix::Library> = OnceCell::new();
+#[cfg(windows)]
+static EXTENSION_LIBRARY: OnceCell<libloading::Library> = OnceCell::new();
 
 /// Generate extension schema files
 #[derive(clap::Args, Debug)]
@@ -387,37 +392,66 @@ pub(crate) fn generate_schema(
     let mut entities = Vec::default();
 
     #[rustfmt::skip] // explicit extern "Rust" is more clear here
-	#[cfg(not(windows))]
+
     unsafe {
         // SAFETY: Calls foreign functions with the correct type signatures.
         // Assumes that repr(Rust) enums are represented the same in this crate as in the external
         // binary, which is the case in practice when the same compiler is used to compile the
         // external crate.
-
+        #[cfg(not(windows))]
         POSTMASTER_LIBRARY
             .get_or_try_init(|| {
-                libloading::Library::new(
-                    Some(&postmaster_stub_built)
-                ).unwrap();
+                libloading::os::unix::Library::open(
+                    Some(&postmaster_stub_built),
+                    libloading::os::unix::RTLD_NOW | libloading::os::unix::RTLD_GLOBAL,
+                )
             })
             .wrap_err_with(|| format!("Couldn't libload {}", postmaster_stub_built.display()))?;
 
+        #[cfg(windows)]
+        POSTMASTER_LIBRARY
+            .get_or_try_init(|| {
+                libloading::Library::new(
+                    &postmaster_stub_built
+                )
+            })
+            .wrap_err_with(|| format!("Couldn't libload {}", postmaster_stub_built.display()))?;
+        
+        #[cfg(not(windows))]
         let lib = EXTENSION_LIBRARY
             .get_or_try_init(|| {
                 libloading::os::unix::Library::open(Some(&lib_so), libloading::os::unix::RTLD_LAZY)
             })
             .wrap_err_with(|| format!("Couldn't libload {}", lib_so.display()))?;
 
+        #[cfg(windows)]
+        let lib = EXTENSION_LIBRARY
+        .get_or_try_init(|| {
+            libloading::Library::new(&lib_so)
+        })
+        .wrap_err_with(|| format!("Couldn't libload {}", lib_so.display()))?;
+    
+        #[cfg(not(windows))]
         let symbol: libloading::os::unix::Symbol<
             unsafe extern "Rust" fn() -> eyre::Result<pgrx_sql_entity_graph::ControlFile>,
         > = lib
             .get("__pgrx_marker".as_bytes())
             .expect("Couldn't call __pgrx_marker");
+
+        #[cfg(windows)]
+        let symbol: libloading::Symbol< 
+            unsafe extern "Rust" fn() -> eyre::Result<pgrx_sql_entity_graph::ControlFile>,
+        > = lib
+                .get(b"__pgrx_marker")
+                .expect("Couldn't call __pgrx_marker");
+
         let control_file_entity = pgrx_sql_entity_graph::SqlGraphEntity::ExtensionRoot(
             symbol().expect("Failed to get control file information"),
         );
+
         entities.push(control_file_entity);
 
+        #[cfg(not(windows))]
         for symbol_to_call in fns_to_call {
             let symbol: libloading::os::unix::Symbol<unsafe extern "Rust" fn() -> pgrx_sql_entity_graph::SqlGraphEntity> =
                 lib.get(symbol_to_call.as_bytes()).unwrap_or_else(|_|
@@ -425,6 +459,18 @@ pub(crate) fn generate_schema(
             let entity = symbol();
             entities.push(entity);
         }
+
+        #[cfg(windows)]
+        for symbol_to_call in fns_to_call {
+            let symbol: Symbol<unsafe extern "Rust" fn() -> pgrx_sql_entity_graph::SqlGraphEntity> =
+                unsafe { lib.get(symbol_to_call.as_bytes()) }
+                .unwrap_or_else(|_|
+                    panic!("Couldn't call {:#?}", symbol_to_call));
+            let entity = symbol();
+            entities.push(entity);
+        }
+
+
     };
 
     let pgrx_sql = pgrx_sql_entity_graph::PgrxSql::build(
