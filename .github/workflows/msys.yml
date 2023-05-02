@@ -40,8 +40,9 @@ jobs:
       run: |
         wget --quiet https://ftp.postgresql.org/pub/source/v${{ matrix.pg_major }}/postgresql-${{ matrix.pg_major }}.tar.bz2
         tar xfj postgresql-${{ matrix.pg_major }}.tar.bz2
+        export PGPATH=$PWD/pgsql
         cd postgresql-${{ matrix.pg_major }}
-        ./configure --build=x86_64-w64-mingw32 --prefix=${PWD}/pgsql --build=x86_64-w64-mingw32 --enable-float8-byval --enable-cassert --enable-debug --enable-integer-datetimes --with-libxml  --with-zlib
+        ./configure --build=x86_64-w64-mingw32 --prefix=${PGPATH} --build=x86_64-w64-mingw32 --enable-float8-byval --enable-cassert --enable-debug --enable-integer-datetimes --with-libxml  --with-zlib
         make install
 
     - name: Install cargo-pgrx
