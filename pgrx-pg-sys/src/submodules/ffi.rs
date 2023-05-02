@@ -105,12 +105,18 @@ unsafe fn pg_guard_ffi_boundary_impl<T, F: FnOnce() -> T>(f: F) -> T {
 
     // SAFETY: This should really, really not be done in a multithreaded context as it
     // accesses multiple `static mut`. The ultimate caller asserts this is the main thread.
+    // TODO: handle windows once I figure out how to
+    #[cfg( not(windows) )]
     unsafe {
         let caller_memxct = pg_sys::CurrentMemoryContext;
         let prev_exception_stack = pg_sys::PG_exception_stack;
         let prev_error_context_stack = pg_sys::error_context_stack;
         let mut jump_buffer = std::mem::MaybeUninit::uninit();
+        #[cfg( not(target_os = "windows") ) ]
         let jump_value = crate::sigsetjmp(jump_buffer.as_mut_ptr(), 0);
+
+        //#[cfg( target_os = "windows")]
+        //let jump_value = crate::_setjmp3(jump_buffer.as_mut_ptr(), ptr::null());
 
         if jump_value == 0 {
             // first time through, not as the result of a longjmp
@@ -182,5 +188,11 @@ unsafe fn pg_guard_ffi_boundary_impl<T, F: FnOnce() -> T>(f: F) -> T {
                 },
             }))
         }
+    }
+    //TODO: figure out what this should do later
+    #[cfg( windows )]
+    unsafe {
+        let result = f();
+        return result;
     }
 }
