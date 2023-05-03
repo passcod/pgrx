@@ -46,9 +46,9 @@ jobs:
         make install
 
     - name: Install cargo-pgrx
-      run: cargo install --path cargo-pgrx/ --debug --force --locked
+      run: cargo install --path cargo-pgrx/ --debug --force
 
-    - name: Run 'cargo pgrx init' against system-level ${{ matrix.version }}
+    - name: Run 'cargo pgrx init' against ${{ matrix.version }}
       run: |
         export PGUSER=postgres
         whoami
@@ -60,7 +60,9 @@ jobs:
       run: |
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
         export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
-        export RUST_BACKTRACE=full
+        export RUST_BACKTRACE=FULL
+        export CARGO_PROFILE_TEST_BUILD_OVERRIDE_DEBUG=true
+        export PGRX_PG_SYS_GENERATE_BINDINGS_FOR_RELEASE=1
         cargo test \
           --features "pg$PG_VER cshim" \
           --package pgrx-tests
