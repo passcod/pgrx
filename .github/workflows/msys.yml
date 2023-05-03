@@ -11,8 +11,8 @@ jobs:
       matrix:
         #fail-fast: false
         include:
-          - { icon: '🟦', sys: mingw64, pg_major: '15.2', version: 'postgresql-15' }
-          #- { icon: '🟨', sys: ucrt64  } # Experimental!
+         # - { icon: '🟦', sys: mingw64, pg_major: '15.2', version: 'postgresql-15' }
+          - { icon: '🟨', sys: ucrt64, pg_major: '15.2', version: 'postgresql-15' } # Experimental!
           #- { icon: '🟧', sys: clang64, pg_major: '15.2', version: 'postgresql-15' } # Experimental!
     defaults:
       run:
