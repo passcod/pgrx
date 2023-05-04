@@ -9,7 +9,7 @@
 #LICENSE Use of this source code is governed by the MIT license that can be found in the LICENSE file.
  
 MODULE_big = pgrx-cshim-${PG_TARGET_VERSION}
-OBJS = pgrx-cshim.o $(WIN32RES)
+OBJS = pgrx-cshim.o  #$(WIN32RES)
 PGFILEDESC = "pgrx-cshim - C shim to help pgrx"
 STATIC_LIB_NAME = lib${MODULE_big}.a
 
