@@ -703,10 +703,8 @@ fn run_bindgen(
     eprintln!("Generating bindings for pg{major_version}");
     let bindings = bindgen::Builder::default()
         .header(include_h.display().to_string())
-        .clang_args(&pg_target_include_flags(major_version, pg_config)?.iter()
-            .map(|path| format!("{}", path))
-        .collect::<Vec<String>>(),)
         .clang_args(&extra_bindgen_clang_args(pg_config)?)
+        .clang_args(pg_target_include_flags(major_version, pg_config)?)
         .detect_include_paths(target_env_tracked("PGRX_BINDGEN_NO_DETECT_INCLUDES").is_none())
         .parse_callbacks(Box::new(PgrxOverrides::default()))
         .blocklist_type("(Nullable)?Datum") // manually wrapping datum types for correctness
@@ -727,6 +725,7 @@ fn run_bindgen(
         .blocklist_item("_[A-Z_]+_H") // more header metadata
         .blocklist_item("__[A-Z].*") // these are reserved and unused by Postgres
         .blocklist_item("__darwin.*") // this should always be Apple's names
+        .blocklist_item("__mingw.*")
         .blocklist_function("pq(?:Strerror|Get.*)") // wrappers around platform functions: user can call those themselves
         .blocklist_function("log")
         .blocklist_item(".*pthread.*)") // shims for pthreads on non-pthread systems, just use std::thread
@@ -739,6 +738,9 @@ fn run_bindgen(
         .blocklist_function("(?:sigstack|sigreturn|siggetmask|gets|vfork|te?mpnam(?:_r)?|mktemp)")
         // Missing on some systems, despite being in their headers.
         .blocklist_function("inet_net_pton.*")
+        .blocklist_item("__mingw_ldbl_type_t")
+        
+        .blocklist_item("_JUMP_BUFFER")
         .size_t_is_usize(true)
         .rustfmt_bindings(false)
         .derive_debug(true)
@@ -751,7 +753,7 @@ fn run_bindgen(
         .derive_partialord(false)
         .layout_tests(false)
         .generate()
-        .wrap_err_with(|| format!("Unable to generate bindings for pg{} {}", major_version, pg_target_include_flags(major_version, pg_config).expect(" ").join(" ")))?;
+        .wrap_err_with(|| format!("Unable to generate bindings for pg{}", major_version))?;
 
     Ok(bindings.to_string())
 }
@@ -808,6 +810,7 @@ fn pg_target_include_flags(pg_version: u16, pg_config: &PgConfig) -> eyre::Resul
             let include_dirs: Vec<&str> = include_dir.split_whitespace().collect();
             let include_args: Vec<String> = include_dirs.into_iter().map(|dir| format!("-I{}", dir)).collect();
             out = include_args;
+            eprintln!("Ask pgconfig");
             Ok(out)
         },
         // Configured to empty string: assume bindgen is getting it some other
@@ -891,7 +894,7 @@ fn build_shim_for_version(
     )?;
 
     if rc.status.code().unwrap() != 0 {
-        //return Err(eyre!("failed to make pgrx-cshim for v{}", major_version));
+        return Err(eyre!("failed to make pgrx-cshim for v{}", major_version));
     }
 
     Ok(())
