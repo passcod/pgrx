@@ -763,6 +763,7 @@ fn add_blocklists(bind: bindgen::Builder) -> bindgen::Builder {
         // Missing on some systems, despite being in their headers.
         .blocklist_function("inet_net_pton.*")
         .blocklist_item("__mingw_ldbl_type_t")
+        .blocklist_type("_JUMP_BUFFER")
 }
 
 fn add_derives(bind: bindgen::Builder) -> bindgen::Builder {
