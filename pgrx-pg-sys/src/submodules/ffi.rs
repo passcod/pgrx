@@ -86,7 +86,16 @@ being converted into a transaction-aborting Postgres `ERROR` by PGRX.
 use crate as pg_sys;
 use crate::panic::{CaughtError, ErrorReport, ErrorReportLocation, ErrorReportWithLevel};
 use core::ffi::CStr;
+#[cfg(windows)]
+use std::os::raw::c_int;
+#[cfg(windows)]
+use std::mem::MaybeUninit;
 
+#[cfg(windows)]
+#[link(name = "msvcrt")]
+extern "C" {
+    fn _setjmp(jb: *mut [isize; 5]) -> c_int;
+}
 #[inline(always)]
 #[track_caller]
 pub unsafe fn pg_guard_ffi_boundary<T, F: FnOnce() -> T>(f: F) -> T {
@@ -105,18 +114,22 @@ unsafe fn pg_guard_ffi_boundary_impl<T, F: FnOnce() -> T>(f: F) -> T {
 
     // SAFETY: This should really, really not be done in a multithreaded context as it
     // accesses multiple `static mut`. The ultimate caller asserts this is the main thread.
-    // TODO: handle windows once I figure out how to
-    #[cfg( not(windows) )]
     unsafe {
         let caller_memxct = pg_sys::CurrentMemoryContext;
         let prev_exception_stack = pg_sys::PG_exception_stack;
         let prev_error_context_stack = pg_sys::error_context_stack;
+        #[cfg( not(windows) ) ]
         let mut jump_buffer = std::mem::MaybeUninit::uninit();
-        #[cfg( not(target_os = "windows") ) ]
+
+        #[cfg( windows ) ]
+        let mut jump_buffer = MaybeUninit::<[isize; 5]>::uninit();
+        
+        #[cfg( not(windows) ) ]
         let jump_value = crate::sigsetjmp(jump_buffer.as_mut_ptr(), 0);
 
-        //#[cfg( target_os = "windows")]
-        //let jump_value = crate::_setjmp3(jump_buffer.as_mut_ptr(), ptr::null());
+        // first time through, not as the result of a 
+        #[cfg( windows ) ]
+        let jump_value = _setjmp(jump_buffer.as_mut_ptr());
 
         if jump_value == 0 {
             // first time through, not as the result of a longjmp
@@ -188,11 +201,5 @@ unsafe fn pg_guard_ffi_boundary_impl<T, F: FnOnce() -> T>(f: F) -> T {
                 },
             }))
         }
-    }
-    //TODO: figure out what this should do later
-    #[cfg( windows )]
-    unsafe {
-        let result = f();
-        return result;
     }
 }
