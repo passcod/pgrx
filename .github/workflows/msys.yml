@@ -35,6 +35,7 @@ jobs:
           rust:p
           clang:p
           libtool:p
+          tree:p
 
     - name: "Build and Install PostgreSQL"
       run: |
@@ -55,12 +56,20 @@ jobs:
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
         export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
         cargo pgrx init --pg$PG_VER pg_config
+      
+    - name: Run 'cargo pgrx new'
+      run: | 
+        export PGUSER=postgres
+        export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
+        export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/lib:$PWD/pgsql/include
+        cargo pgrx new test_extension
+        tree test_extension
 
     - name: Run pgrx-tests
       run: |
         export PG_VER=$(echo ${{ matrix.version }} | cut -d '-' -f2)
         export PATH=${PATH}:$PWD/pgsql/bin:$PWD/pgsql/include
-        export RUST_BACKTRACE=FULL
+        export RUST_BACKTRACE=full
         export CARGO_PROFILE_TEST_BUILD_OVERRIDE_DEBUG=true
         export PGRX_PG_SYS_GENERATE_BINDINGS_FOR_RELEASE=1
         cargo test \
