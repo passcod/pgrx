@@ -738,9 +738,9 @@ fn run_bindgen(
         .blocklist_function("(?:sigstack|sigreturn|siggetmask|gets|vfork|te?mpnam(?:_r)?|mktemp)")
         // Missing on some systems, despite being in their headers.
         .blocklist_function("inet_net_pton.*")
-        .blocklist_item("__mingw_ldbl_type_t")
+        .blocklist_type("__mingw_ldbl_type_t")
         
-        .blocklist_item("_JUMP_BUFFER")
+        .blocklist_type("_JUMP_BUFFER")
         .size_t_is_usize(true)
         .rustfmt_bindings(false)
         .derive_debug(true)
