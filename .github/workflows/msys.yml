@@ -29,13 +29,13 @@ jobs:
         install: >-
           unzip
           make
+          tree
         pacboy: >-
           toolchain:p
           json-c:p
           rust:p
           clang:p
           libtool:p
-          tree:p
 
     - name: "Build and Install PostgreSQL"
       run: |

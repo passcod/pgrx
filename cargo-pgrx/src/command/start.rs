@@ -14,7 +14,12 @@ use crate::CommandExecute;
 use eyre::eyre;
 use owo_colors::OwoColorize;
 use pgrx_pg_config::{PgConfig, PgConfigSelector, Pgrx};
+//#[cfg(not(windows))]
 //use std::os::unix::process::CommandExt;
+
+//#[cfg(windows)]
+//use std::os::windows::process::CommandExt;
+
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -92,7 +97,8 @@ pub(crate) fn start_postgres(pg_config: &PgConfig) -> eyre::Result<()> {
     // This is to work around a bug in PG11 which does not call setsid in pg_ctl
     // This means that when cargo pgrx run dumps a user into psql, pushing ctrl-c will abort
     // the postgres server started by pgrx
-    /**unsafe {
+    #[cfg(unix)]
+    unsafe {
         command
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -110,7 +116,21 @@ pub(crate) fn start_postgres(pg_config: &PgConfig) -> eyre::Result<()> {
                 fork::setsid().expect("setsid call failed for pg_ctl");
                 Ok(())
             });
-    }**/
+    }
+
+    #[cfg(windows)]
+    command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .arg("start")
+        .arg(format!(
+            "-o -i -p {} -c \"listen_addresses='127.0.0.1'\"",
+            port
+        ))
+        .arg("-D")
+        .arg(&datadir)
+        .arg("-l")
+        .arg(&logfile);
 
     let command_str = format!("{:?}", command);
     let output = command.output()?;
