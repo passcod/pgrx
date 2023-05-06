@@ -98,14 +98,27 @@ fn init_active_thread(tid: NonZeroUsize) {
         Ok(_) => unsafe {
             // We won the race. Register an atfork handler to clear the atomic
             // in any child processes we spawn.
+            #[cfg(not(target_os = "windows"))]
             extern "C" fn clear_in_child() {
                 ACTIVE_THREAD.store(0, Ordering::Relaxed);
             }
-            #[cfg(not(windows))]
+            #[cfg(target_os = "windows")]
+            extern "system" fn clear_in_child() {
+                ACTIVE_THREAD.store(0, Ordering::Relaxed);
+            }
+
+            #[cfg(not(target_os = "windows"))]
             libc::pthread_atfork(None, None, Some(clear_in_child));
 
-            //#[cfg(windows)]
-            //let clear_in_child_fn = transmute::<unsafe extern "C" fn(), unsafe extern "C-unwind" fn()>(clear_in_child);
+            // #[cfg(target_os = "windows")]
+            // {
+            //     let result = unsafe {
+            //         winapi::um::processthreadsapi::AddVectoredExceptionHandler(1, Some(clear_in_child as _))
+            //     };
+            //     if result == std::ptr::null_mut() {
+            //         panic!("Failed to install vectored exception handler");
+            //     }
+            // }
         },
         Err(_) => {
             thread_id_check_failed();

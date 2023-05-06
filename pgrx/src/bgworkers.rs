@@ -340,6 +340,7 @@ impl DynamicBackgroundWorker {
     /// Requires `BackgroundWorkerBuilder.bgw_notify_pid` to be set to `pg_sys::MyProcPid`, otherwise it'll
     /// return [`BackgroundWorkerStatus::Untracked`] error
     pub fn wait_for_startup(&self) -> Result<Pid, BackgroundWorkerStatus> {
+        #[cfg(not(windows))]
         unsafe {
             if self.notify_pid != pg_sys::MyProcPid {
                 return Err(BackgroundWorkerStatus::Untracked { notify_pid: self.notify_pid });
@@ -379,6 +380,7 @@ impl TerminatingDynamicBackgroundWorker {
     /// Requires `BackgroundWorkerBuilder.bgw_notify_pid` to be set to `pg_sys::MyProcPid`, otherwise it'll
     /// return [`BackgroundWorkerStatus::Untracked`] error
     pub fn wait_for_shutdown(self) -> Result<(), BackgroundWorkerStatus> {
+        #[cfg(not(windows))]
         unsafe {
             if self.notify_pid != pg_sys::MyProcPid {
                 return Err(BackgroundWorkerStatus::Untracked { notify_pid: self.notify_pid });
@@ -577,7 +579,14 @@ impl BackgroundWorkerBuilder {
     /// postmaster startup time, or when the backend registering the worker does not wish
     /// to wait for the worker to start up. Otherwise, it should be initialized to
     /// `pgrx::pg_sys::MyProcPid`
+    #[cfg(not(windows))]
     pub fn set_notify_pid(mut self: Self, input: i32) -> Self {
+        self.bgw_notify_pid = input;
+        self
+    }
+
+    #[cfg(windows)]
+    pub fn set_notify_pid(mut self: Self, input: i64) -> Self {
         self.bgw_notify_pid = input;
         self
     }
