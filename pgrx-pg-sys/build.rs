@@ -739,7 +739,6 @@ fn run_bindgen(
         // Missing on some systems, despite being in their headers.
         .blocklist_function("inet_net_pton.*")
         .blocklist_type("__mingw_ldbl_type_t")
-        
         .blocklist_type("_JUMP_BUFFER")
         .size_t_is_usize(true)
         .rustfmt_bindings(false)
