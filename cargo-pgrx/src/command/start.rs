@@ -116,13 +116,12 @@ pub(crate) fn start_postgres(pg_config: &PgConfig) -> eyre::Result<()> {
             });
     }
 
-    // TODO(windows): IPv6? does that matter?
     #[cfg(windows)]
     command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .arg("start")
-        .arg(format!("-o -i -p {} -c \"listen_addresses='127.0.0.1'\"", port))
+        .raw_arg(format!("-o -i -p {} -c \"listen_addresses='127.0.0.1'\"", port))
         .arg("-D")
         .arg(&datadir)
         .arg("-l")
