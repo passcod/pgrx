@@ -371,7 +371,6 @@ dependencies = [
  "prettyplease",
  "proc-macro2",
  "quote",
- "rayon",
  "regex",
  "semver 1.0.20",
  "serde",
