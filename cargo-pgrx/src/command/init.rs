@@ -82,8 +82,6 @@ pub(crate) struct Init {
 impl CommandExecute for Init {
     #[tracing::instrument(level = "error", skip(self))]
     fn execute(self) -> eyre::Result<()> {
-        check_tar_variant()?;
-
         let mut versions = HashMap::new();
 
         if let Some(ref version) = self.pg11 {
@@ -219,17 +217,13 @@ pub(crate) fn init_pgrx(pgrx: &Pgrx, init: &Init) -> eyre::Result<()> {
 }
 
 #[tracing::instrument(level = "error", skip_all)]
-fn check_tar_variant() -> eyre::Result<()> {
+fn is_bsdtar() -> eyre::Result<bool> {
     let tar_version = std::process::Command::new("tar")
         .arg("--version")
         .output()
         .wrap_err("failed to spawn `tar`")?;
 
-    if tar_version.stdout[0..=5] == b"bsdtar"[..] {
-        Err(eyre!("`tar` is BSD tar, which is not supported"))
-    } else {
-        Ok(())
-    }
+    Ok(tar_version.stdout[0..=5] == b"bsdtar"[..])
 }
 
 #[tracing::instrument(level = "error", skip_all, fields(pg_version = %pg_config.version()?, pgrx_home))]
@@ -268,25 +262,24 @@ fn download_postgres(
 }
 
 fn untar(bytes: &[u8], pgrxdir: &PathBuf, pg_config: &PgConfig) -> eyre::Result<PathBuf> {
-    let mut pgdir = pgrxdir.clone();
-    pgdir.push(&pg_config.version()?);
-    if pgdir.exists() {
+    let mut unpackdir = pgrxdir.clone();
+    unpackdir.push(&format!("{}_unpack", pg_config.version()?));
+    if unpackdir.exists() {
         // delete everything at this path if it already exists
-        println!("{} {}", "     Removing".bold().green(), pgdir.display());
-        std::fs::remove_dir_all(&pgdir)?;
+        println!("{} {}", "     Removing".bold().green(), unpackdir.display());
+        std::fs::remove_dir_all(&unpackdir)?;
     }
-    std::fs::create_dir_all(&pgdir)?;
+    std::fs::create_dir_all(&unpackdir)?;
 
     println!(
         "{} Postgres v{} to {}",
         "    Untarring".bold().green(),
         pg_config.version()?,
-        pgdir.display()
+        unpackdir.display()
     );
     let mut child = std::process::Command::new("tar")
         .arg("-C")
-        .arg(&pgdir)
-        .arg("--strip-components=1")
+        .arg(&unpackdir)
         .arg("-xjf")
         .arg("-")
         .stdout(std::process::Stdio::piped())
@@ -313,19 +306,52 @@ fn untar(bytes: &[u8], pgrxdir: &PathBuf, pg_config: &PgConfig) -> eyre::Result<
     }
 
     let output = child.wait_with_output()?;
-
-    if output.status.success() && error.is_none() {
-        Ok(pgdir)
-    } else {
+    if !output.status.success() || error.is_some() {
         // It's possible to have a "None" error from above, but the child output still reports an error.
         // We need to handle both of those cases.
         let command_error = eyre!("Command error: {}", String::from_utf8_lossy(&output.stderr));
 
-        match error {
+        return match error {
             Some(e) => Err(eyre!(e).wrap_err(command_error)),
             None => Err(command_error),
-        }
+        };
     }
+
+    let mut pgdir = pgrxdir.clone();
+    pgdir.push(&pg_config.version()?);
+    if pgdir.exists() {
+        // delete everything at this path if it already exists
+        println!("{} {}", "     Removing".bold().green(), pgdir.display());
+        std::fs::remove_dir_all(&pgdir)?;
+    }
+
+    let first_level_dirs = std::fs::read_dir(&unpackdir)?
+        .filter(|entry| {
+            entry
+                .as_ref()
+                .expect("failed to read entry in unpacked dir")
+                .metadata()
+                .expect("failed to stat entry in unpacked dir")
+                .is_dir()
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if first_level_dirs.len() != 1 {
+        return Err(eyre!(
+            "Expected exactly one directory in tarball, found {}",
+            first_level_dirs.len()
+        ));
+    }
+    // UNWRAP: length-checked above
+    let first_level_dir = first_level_dirs.first().unwrap().path();
+    println!(
+        "{} {} -> {}",
+        "     Renaming".bold().green(),
+        first_level_dir.display(),
+        pgdir.display()
+    );
+    std::fs::rename(first_level_dir, &pgdir)?;
+
+    Ok(pgdir)
 }
 
 fn fixup_homebrew_for_icu(configure_cmd: &mut Command) {
