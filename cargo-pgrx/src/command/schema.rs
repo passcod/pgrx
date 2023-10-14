@@ -27,7 +27,6 @@ use std::process::Stdio;
 extern crate alloc;
 use crate::manifest::{get_package_manifest, pg_config_and_version};
 use alloc::vec::Vec;
-use libloading::Symbol;
 use std::env;
 
 // An apparent bug in `glibc` 2.17 prevents us from safely dropping this
@@ -462,7 +461,7 @@ pub(crate) fn generate_schema(
 
         #[cfg(windows)]
         for symbol_to_call in fns_to_call {
-            let symbol: Symbol<unsafe extern "Rust" fn() -> pgrx_sql_entity_graph::SqlGraphEntity> =
+            let symbol: libloading::Symbol<unsafe extern "Rust" fn() -> pgrx_sql_entity_graph::SqlGraphEntity> =
                 lib.get(symbol_to_call.as_bytes())
                 .unwrap_or_else(|_|
                     panic!("Couldn't call {:#?}", symbol_to_call));

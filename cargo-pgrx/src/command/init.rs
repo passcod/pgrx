@@ -269,7 +269,7 @@ fn untar(bytes: &[u8], pgrxdir: &PathBuf, pg_config: &PgConfig) -> eyre::Result<
         pg_config.version()?,
         unpackdir.display()
     );
-    let tar_decoder = Archive::new(BzDecoder::new(bytes));
+    let mut tar_decoder = Archive::new(BzDecoder::new(bytes));
     tar_decoder.unpack(&unpackdir)?;
 
     let mut pgdir = pgrxdir.clone();

@@ -153,7 +153,7 @@ pub(crate) fn exec_psql(pg_config: &PgConfig, dbname: &str, pgcli: bool) -> eyre
 
     // we'll never return from here as we've now become psql
     #[cfg(unix)]
-    panic!("{}", exec(command));
+    panic!("{}", command.exec());
     #[cfg(windows)]
     panic!("{}", "TODO(windows)");
 }
