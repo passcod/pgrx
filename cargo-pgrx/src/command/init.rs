@@ -305,6 +305,7 @@ fn untar(bytes: &[u8], pgrxdir: &PathBuf, pg_config: &PgConfig) -> eyre::Result<
         pgdir.display()
     );
     std::fs::rename(first_level_dir, &pgdir)?;
+    std::fs::remove_dir_all(&unpackdir)?;
 
     Ok(pgdir)
 }
@@ -383,9 +384,7 @@ fn fixup_homebrew_for_icu(configure_cmd: &mut Command) {
 
 fn configure_postgres(pg_config: &PgConfig, pgdir: &PathBuf, init: &Init) -> eyre::Result<()> {
     println!("{} Postgres v{}", "  Configuring".bold().green(), pg_config.version()?);
-    let mut configure_path = pgdir.clone();
-    configure_path.push("configure");
-    let mut command = std::process::Command::new(configure_path);
+    let mut command = std::process::Command::new("sh");
     // Some of these are redundant with `--enable-debug`.
     let mut existing_cppflags = std::env::var("CPPFLAGS").unwrap_or_default();
     existing_cppflags += " -DMEMORY_CONTEXT_CHECKING=1 \
@@ -401,8 +400,12 @@ fn configure_postgres(pg_config: &PgConfig, pgdir: &PathBuf, init: &Init) -> eyr
         existing_cppflags += valgrind_flags;
     }
 
+    let mut configure_path = pgdir.clone();
+    configure_path.push("configure");
+
     command
         .env("CPPFLAGS", existing_cppflags)
+        .arg(configure_path)
         .arg(format!("--prefix={}", get_pg_installdir(pgdir).display()))
         .arg(format!("--with-pgport={}", pg_config.port()?))
         .arg("--enable-debug")
