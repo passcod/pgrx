@@ -22,10 +22,10 @@ use tar::Archive;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 static PROCESS_ENV_DENYLIST: &'static [&'static str] = &[
     "DEBUG",
@@ -79,11 +79,28 @@ pub(crate) struct Init {
     /// installed, but the resulting build is usable without valgrind.
     #[clap(long)]
     valgrind: bool,
+    #[clap(long, short, help = "Allow N make jobs at once")]
+    jobs: Option<usize>,
+    #[clap(skip)]
+    jobserver: OnceLock<jobslot::Client>,
 }
 
 impl CommandExecute for Init {
     #[tracing::instrument(level = "error", skip(self))]
     fn execute(self) -> eyre::Result<()> {
+        self.jobserver
+            .set(
+                jobslot::Client::new(
+                    self.jobs
+                        .or_else(|| {
+                            std::thread::available_parallelism().map(NonZeroUsize::get).ok()
+                        })
+                        .unwrap_or(1),
+                )
+                .expect("failed to create jobserver"),
+            )
+            .unwrap();
+
         let mut versions = HashMap::new();
 
         if let Some(ref version) = self.pg11 {
@@ -248,9 +265,9 @@ fn download_postgres(
     let mut buf = Vec::new();
     let _count = http_response.into_reader().read_to_end(&mut buf)?;
     let pgdir = untar(&buf, pgrx_home, pg_config)?;
-    configure_postgres(pg_config, &pgdir, init)?;
-    make_postgres(pg_config, &pgdir)?;
-    make_install_postgres(pg_config, &pgdir) // returns a new PgConfig object
+    configure_postgres(pg_config, &pgdir, &init)?;
+    make_postgres(pg_config, &pgdir, &init)?;
+    make_install_postgres(pg_config, &pgdir, init) // returns a new PgConfig object
 }
 
 fn untar(bytes: &[u8], pgrxdir: &PathBuf, pg_config: &PgConfig) -> eyre::Result<PathBuf> {
@@ -383,6 +400,8 @@ fn fixup_homebrew_for_icu(configure_cmd: &mut Command) {
 }
 
 fn configure_postgres(pg_config: &PgConfig, pgdir: &PathBuf, init: &Init) -> eyre::Result<()> {
+    let _token = init.jobserver.get().unwrap().acquire().unwrap();
+
     println!("{} Postgres v{}", "  Configuring".bold().green(), pg_config.version()?);
     let mut command = std::process::Command::new("sh");
     // Some of these are redundant with `--enable-debug`.
@@ -450,7 +469,7 @@ fn configure_postgres(pg_config: &PgConfig, pgdir: &PathBuf, init: &Init) -> eyr
     }
 }
 
-fn make_postgres(pg_config: &PgConfig, pgdir: &PathBuf) -> eyre::Result<()> {
+fn make_postgres(pg_config: &PgConfig, pgdir: &PathBuf, init: &Init) -> eyre::Result<()> {
     let num_cpus = 1.max(num_cpus::get() / 3);
     println!("{} Postgres v{}", "    Compiling".bold().green(), pg_config.version()?);
     let mut command = std::process::Command::new("make");
@@ -470,7 +489,7 @@ fn make_postgres(pg_config: &PgConfig, pgdir: &PathBuf) -> eyre::Result<()> {
 
     let command_str = format!("{:?}", command);
     tracing::debug!(command = %command_str, "Running");
-    let child = command.spawn()?;
+    let child = init.jobserver.get().unwrap().configure_and_run(&mut command, |cmd| cmd.spawn())?;
     let output = child.wait_with_output()?;
     tracing::trace!(status_code = %output.status, command = %command_str, "Finished");
 
@@ -486,7 +505,11 @@ fn make_postgres(pg_config: &PgConfig, pgdir: &PathBuf) -> eyre::Result<()> {
     }
 }
 
-fn make_install_postgres(version: &PgConfig, pgdir: &PathBuf) -> eyre::Result<PgConfig> {
+fn make_install_postgres(
+    version: &PgConfig,
+    pgdir: &PathBuf,
+    init: &Init,
+) -> eyre::Result<PgConfig> {
     println!(
         "{} Postgres v{} to {}",
         "   Installing".bold().green(),
@@ -507,7 +530,7 @@ fn make_install_postgres(version: &PgConfig, pgdir: &PathBuf) -> eyre::Result<Pg
 
     let command_str = format!("{:?}", command);
     tracing::debug!(command = %command_str, "Running");
-    let child = command.spawn()?;
+    let child = init.jobserver.get().unwrap().configure_and_run(&mut command, |cmd| cmd.spawn())?;
     let output = child.wait_with_output()?;
     tracing::trace!(status_code = %output.status, command = %command_str, "Finished");
 
