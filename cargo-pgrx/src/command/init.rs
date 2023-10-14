@@ -82,6 +82,8 @@ pub(crate) struct Init {
 impl CommandExecute for Init {
     #[tracing::instrument(level = "error", skip(self))]
     fn execute(self) -> eyre::Result<()> {
+        check_tar_variant()?;
+
         let mut versions = HashMap::new();
 
         if let Some(ref version) = self.pg11 {
@@ -214,6 +216,20 @@ pub(crate) fn init_pgrx(pgrx: &Pgrx, init: &Init) -> eyre::Result<()> {
 
     write_config(output_configs, init)?;
     Ok(())
+}
+
+#[tracing::instrument(level = "error", skip_all)]
+fn check_tar_variant() -> eyre::Result<()> {
+    let tar_version = std::process::Command::new("tar")
+        .arg("--version")
+        .output()
+        .wrap_err("failed to spawn `tar`")?;
+
+    if tar_version.stdout[0..=5] == b"bsdtar"[..] {
+        Err(eyre!("`tar` is BSD tar, which is not supported"))
+    } else {
+        Ok(())
+    }
 }
 
 #[tracing::instrument(level = "error", skip_all, fields(pg_version = %pg_config.version()?, pgrx_home))]
