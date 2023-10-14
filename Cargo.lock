@@ -379,6 +379,7 @@ dependencies = [
  "syn 2.0.38",
  "tar",
  "tempfile",
+ "toml",
  "tracing",
  "tracing-error",
  "tracing-subscriber",

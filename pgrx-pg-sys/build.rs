@@ -730,9 +730,7 @@ fn run_bindgen(
         .formatter(bindgen::Formatter::None)
         .layout_tests(false)
         .generate()
-        .wrap_err_with(||
-            format!(
-                "Unable to generate bindings for pg{}", major_version))?;
+        .wrap_err_with(|| format!("Unable to generate bindings for pg{}", major_version))?;
     Ok(bindings.to_string())
 }
 
@@ -822,10 +820,11 @@ fn pg_target_include_flags(pg_version: u16, pg_config: &PgConfig) -> eyre::Resul
     match value {
         // No configured value: ask `pg_config`.
         None => {
-            #[cfg( not(target_family = "windows") )]
+            #[cfg(not(target_family = "windows"))]
             let include_dir = pg_config.includedir_server()?.display().to_string();
             #[cfg(target_family = "windows")]
-            let include_dir = format!("{0} {0}/port/win32", pg_config.includedir_server()?.display().to_string());
+            let include_dir =
+                format!("{0} {0}/port/win32", pg_config.includedir_server()?.display().to_string());
             let include_dirs: Vec<&str> = include_dir.split_whitespace().collect();
             let include_args: Vec<String> =
                 include_dirs.into_iter().map(|dir| format!("-I{}", dir)).collect();

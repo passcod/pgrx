@@ -87,9 +87,9 @@ use crate as pg_sys;
 use crate::panic::{CaughtError, ErrorReport, ErrorReportLocation, ErrorReportWithLevel};
 use core::ffi::CStr;
 #[cfg(windows)]
-use std::os::raw::c_int;
-#[cfg(windows)]
 use std::mem::MaybeUninit;
+#[cfg(windows)]
+use std::os::raw::c_int;
 
 #[cfg(windows)]
 #[link(name = "msvcrt")]
@@ -118,17 +118,17 @@ unsafe fn pg_guard_ffi_boundary_impl<T, F: FnOnce() -> T>(f: F) -> T {
         let caller_memxct = pg_sys::CurrentMemoryContext;
         let prev_exception_stack = pg_sys::PG_exception_stack;
         let prev_error_context_stack = pg_sys::error_context_stack;
-        #[cfg( not(windows) ) ]
+        #[cfg(not(windows))]
         let mut jump_buffer = std::mem::MaybeUninit::uninit();
 
-        #[cfg( windows ) ]
+        #[cfg(windows)]
         let mut jump_buffer = MaybeUninit::<[isize; 5]>::uninit();
-        
-        #[cfg( not(windows) ) ]
+
+        #[cfg(not(windows))]
         let jump_value = crate::sigsetjmp(jump_buffer.as_mut_ptr(), 0);
 
-        // first time through, not as the result of a 
-        #[cfg( windows ) ]
+        // first time through, not as the result of a
+        #[cfg(windows)]
         let jump_value = _setjmp(jump_buffer.as_mut_ptr());
 
         if jump_value == 0 {

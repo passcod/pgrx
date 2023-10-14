@@ -29,15 +29,15 @@ pub static BASE_POSTGRES_TESTING_PORT_NO: u16 = 32200;
 /// The flags to specify to get a "C.UTF-8" locale on this system, or "C" locale on systems without
 /// a "C.UTF-8" locale equivalent.
 pub fn get_c_locale_flags() -> &'static [&'static str] {
-    #[cfg( target_os = "macos")]
+    #[cfg(target_os = "macos")]
     {
         &["--locale=C", "--lc-ctype=UTF-8"]
     }
-    #[cfg( target_os = "windows") ]
+    #[cfg(target_os = "windows")]
     {
         &["--locale=C"]
     }
-    #[cfg(not(any(target_os = "macos", target_os = "windows")) )]
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         match Command::new("locale").arg("-a").output() {
             Ok(cmd)
@@ -458,13 +458,13 @@ impl Default for Pgrx {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ConfigToml {
-    configs: HashMap<String, PathBuf>,
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct ConfigToml {
+    pub configs: HashMap<String, PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    base_port: Option<u16>,
+    pub base_port: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    base_testing_port: Option<u16>,
+    pub base_testing_port: Option<u16>,
 }
 
 pub enum PgConfigSelector<'a> {
