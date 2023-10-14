@@ -406,6 +406,10 @@ fn fixup_homebrew_for_icu(configure_cmd: &mut Command) {
     }
 }
 
+fn unix_style_path(path: &std::path::Path) -> String {
+    path.components().map(|comp| comp.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/")
+}
+
 fn configure_postgres(pg_config: &PgConfig, pgdir: &PathBuf, init: &Init) -> eyre::Result<()> {
     let _token = init.jobserver.get().unwrap().acquire().unwrap();
 
@@ -432,7 +436,7 @@ fn configure_postgres(pg_config: &PgConfig, pgdir: &PathBuf, init: &Init) -> eyr
     command
         .env("CPPFLAGS", existing_cppflags)
         .arg(configure_path)
-        .arg(format!("--prefix={}", get_pg_installdir(pgdir).display()))
+        .arg(format!("--prefix={}", unix_style_path(&get_pg_installdir(pgdir))))
         .arg(format!("--with-pgport={}", pg_config.port()?))
         .arg("--enable-debug")
         .arg("--enable-cassert");
